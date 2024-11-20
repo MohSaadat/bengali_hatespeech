@@ -73,7 +73,8 @@ def train_n_validate(corpus,
         writer.add_scalar("Loss/Validation", val_loss, epoch)
         writer.add_scalar("Accuracy/Validation", val_acc, epoch)
 
-        torch.save(model, os.path.join(model_save_dir, f'classifier_ep{n_epochs}.pth'))
+        if not ((epoch+1) % save_every):
+            torch.save(model, os.path.join(model_save_dir, f'classifier_ep{n_epochs}.pth'))
 
     torch.save(model, os.path.join(model_save_dir, f'classifier_final.pth'))
     writer.close()
