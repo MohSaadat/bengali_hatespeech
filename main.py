@@ -74,9 +74,21 @@ def train_n_validate(corpus,
         writer.add_scalar("Accuracy/Validation", val_acc, epoch)
 
         if not ((epoch+1) % save_every):
-            torch.save(model, os.path.join(model_save_dir, f'classifier_ep{n_epochs}.pth'))
+            torch.save(
+                {
+                "epoch"                 :   epoch,
+                "model_state_dict"      :   model.state_dict(),
+                "optimizer_state_dict"  :   optimizer.state_dict()
+                },
+                os.path.join(model_save_dir, f'classifier_ep{n_epochs}.pth'))
 
-    torch.save(model, os.path.join(model_save_dir, f'classifier_final.pth'))
+    torch.save(
+            {
+            "epoch"                 :   epoch,
+            "model_state_dict"      :   model.state_dict(),
+            "optimizer_state_dict"  :   optimizer.state_dict()
+            },
+            os.path.join(model_save_dir, 'classifier_final.pth'))
     writer.close()
 
 def train_single_epoch(model, dataloader, loss_func, optimizer):
