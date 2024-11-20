@@ -24,6 +24,7 @@ MODEL_SAVE_DIR = "saved_models"
 
 def train_n_validate(corpus,
                     backbone=DEFAULT_BACKBONE,
+                    restore_ckpt='',
                     validation_split=DEFAULT_VALIDATION_SPLIT,
                     batch_size=DEFAULT_BATCH_SIZE,
                     num_epochs=DEFAULT_NUM_EPOCHS,
@@ -55,6 +56,15 @@ def train_n_validate(corpus,
     optimizer = optim.AdamW(trainables, lr=start_lr)
     lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=1.00-lr_decay)
 
+    # restore ckpt if specified
+    if restore_ckpt:
+        ckpt = torch.load(restore_ckpt)
+        classifier.load_state_dict(ckpt['classifier_state_dict'])
+        optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+        start_epoch = ckpt.get('epoch', 0)
+    else:
+        start_epoch = 0
+
     currtime = [str(dt.now().day), str(dt.now().month), str(dt.now().year), str(dt.now().hour), str(dt.now().minute)]
 
     # create the summary writer to track progress
@@ -64,7 +74,7 @@ def train_n_validate(corpus,
     model_save_dir = os.path.join(MODEL_SAVE_DIR, f"model_{'_'.join(currtime)}")
     os.makedirs(model_save_dir)
 
-    for epoch in tqdm(range(num_epochs)):
+    for epoch in tqdm(range(start_epoch, num_epochs)):
         train_loss = train_single_epoch(classifier, train_loader, loss_func, optimizer)
         val_loss, val_acc = validate_single_epoch(classifier, val_loader, loss_func)
         lr_scheduler.step()
@@ -77,7 +87,7 @@ def train_n_validate(corpus,
             torch.save(
                 {
                 "epoch"                 :   epoch,
-                "model_state_dict"      :   model.state_dict(),
+                "classifier_state_dict" :   classifier.state_dict(),
                 "optimizer_state_dict"  :   optimizer.state_dict()
                 },
                 os.path.join(model_save_dir, f'classifier_ep{n_epochs}.pth'))
@@ -85,7 +95,7 @@ def train_n_validate(corpus,
     torch.save(
             {
             "epoch"                 :   epoch,
-            "model_state_dict"      :   model.state_dict(),
+            "classifier_state_dict" :   classifier.state_dict(),
             "optimizer_state_dict"  :   optimizer.state_dict()
             },
             os.path.join(model_save_dir, 'classifier_final.pth'))
@@ -136,6 +146,8 @@ if __name__=="__main__":
                                                                         or assign None to train [Default: None, i.e. train]')
     parser.add_argument('-b', '--backbone_model', type=str, default=DEFAULT_BACKBONE, help='Name of the backbone \
                                                                                             (transformer or sentence-transformer) model')
+    parser.add_argument('-r', '--restore_ckpt', type=str, default='', help='Assign the ckpt file with full path to restore \
+                                                                            training; otherwise (by default), keep empty string')
     parser.add_argument('-v', '--validation_split', type=float, default=DEFAULT_VALIDATION_SPLIT, help='Validation split as a fraction')
     parser.add_argument('-b_s', '--batch_size', type=int, default=DEFAULT_BATCH_SIZE, help='Batch size')
     parser.add_argument('-e', '--num_epochs', type=int, default=DEFAULT_NUM_EPOCHS, help='Number of epochs to train')
@@ -152,6 +164,7 @@ if __name__=="__main__":
     else:
         train_n_validate(args.corpus,
                         backbone=args.backbone_model,
+                        restore_ckpt=args.restore_ckpt,
                         validation_split=args.validation_split,
                         batch_size=args.batch_size,
                         num_epochs=args.num_epochs,
