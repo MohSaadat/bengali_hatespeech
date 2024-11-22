@@ -107,11 +107,12 @@ def train_single_epoch(model, dataloader, loss_func, optimizer):
     loss_in_epoch = 0
     for batch in dataloader:
         curr_sentences = batch['sentence']
-        curr_labels = nn.functional.one_hot(batch['label'], num_classes=2).to(model.device)
+        curr_labels = batch['label'].to(model.device)
+        curr_labels_one_hot = nn.functional.one_hot(curr_labels, num_classes=2)
 
         curr_outputs = model(curr_sentences)
         optimizer.zero_grad()
-        curr_loss = loss_func(curr_outputs, curr_labels.to(curr_outputs.dtype))
+        curr_loss = loss_func(curr_outputs, curr_labels_one_hot.to(curr_outputs.dtype))
         curr_loss.backward()
         optimizer.step()
 
@@ -127,10 +128,11 @@ def validate_single_epoch(model, dataloader, loss_func):
     with torch.no_grad():
         for batch in dataloader:
             curr_sentences = batch['sentence']
-            curr_labels = nn.functional.one_hot(batch['label'], num_classes=2).to(model.device)
+            curr_labels = batch['label'].to(model.device)
+            curr_labels_one_hot = nn.functional.one_hot(curr_labels, num_classes=2)
 
             curr_outputs = model(curr_sentences)
-            curr_loss = loss_func(curr_outputs, curr_labels.to(curr_outputs.dtype))
+            curr_loss = loss_func(curr_outputs, curr_labels_one_hot.to(curr_outputs.dtype))
 
             loss_in_epoch += curr_loss.item()
 
